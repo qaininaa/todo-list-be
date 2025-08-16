@@ -2,9 +2,11 @@ import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 
 interface Decoded {
-  name: string;
   username: string;
   email: string;
+  name: string;
+  iat?: number;
+  exp?: number;
 }
 
 export const authMiddleware = (
@@ -24,12 +26,16 @@ export const authMiddleware = (
 
     jwt.verify(token as string, ACCESS_SECRET as string, (err, decoded) => {
       if (err) {
-        throw new Error("Token Expired");
+        return res.status(401).json({
+          message: "Token expired",
+        });
       }
       (req as Request & { user?: Decoded }).user = decoded as Decoded;
       next();
     });
   } else {
-    throw new Error("Access denied");
+    return res.status(401).json({
+      message: "Access denied",
+    });
   }
 };
