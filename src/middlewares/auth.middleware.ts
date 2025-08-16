@@ -1,6 +1,12 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 
+interface Decoded {
+  name: string;
+  username: string;
+  email: string;
+}
+
 export const authMiddleware = (
   req: Request,
   res: Response,
@@ -20,7 +26,7 @@ export const authMiddleware = (
       if (err) {
         throw new Error("Token Expired");
       }
-      req.user = decoded;
+      (req as Request & { user?: Decoded }).user = decoded as Decoded;
       next();
     });
   } else {
