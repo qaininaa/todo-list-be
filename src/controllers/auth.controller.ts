@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as authService from "../services/auth.service";
+import jwt from "jsonwebtoken";
 
 export interface UserData {
   username: string;
@@ -11,6 +12,14 @@ export interface UserData {
 export interface UserLoginData {
   username: string;
   password: string;
+}
+
+interface JwtPayload {
+  username: string;
+  email: string;
+  name: string;
+  iat: number;
+  exp: number;
 }
 
 export const register = async (req: Request, res: Response) => {
@@ -49,6 +58,37 @@ export const login = async (req: Request, res: Response) => {
     return res.status(500).json({
       message: "Failed create user",
       errorMessage: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+export const refreshAccess = (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+  const ACCESS_SECRET = process.env.ACCESS_SECRET;
+
+  if (refreshToken && refreshToken !== null) {
+    const decode = jwt.decode(refreshToken as string) as JwtPayload;
+    const payload = {
+      username: decode.username,
+      email: decode.email,
+      name: decode.name,
+    };
+    jwt.sign(
+      payload,
+      ACCESS_SECRET as string,
+      { expiresIn: "1m" },
+      (err, token) => {
+        if (err) {
+          throw new Error("Invalid");
+        }
+        res.json({
+          accesToken: token,
+        });
+      }
+    );
+  } else {
+    return res.status(401).json({
+      message: "Access denied",
     });
   }
 };
