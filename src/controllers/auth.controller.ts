@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as authService from "../services/auth.service";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 export interface UserData {
   username: string;
@@ -14,7 +14,7 @@ export interface UserLoginData {
   password: string;
 }
 
-interface JwtPayload {
+interface MyJwtPayload {
   username: string;
   email: string;
   name: string;
@@ -65,25 +65,27 @@ export const login = async (req: Request, res: Response) => {
 export const refreshAccess = (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
   const ACCESS_SECRET = process.env.ACCESS_SECRET;
+  const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
-  if (refreshToken && refreshToken !== null) {
-    const decode = jwt.decode(refreshToken as string) as JwtPayload;
-    const payload = {
-      username: decode.username,
-      email: decode.email,
-      name: decode.name,
-    };
-    jwt.sign(
-      payload,
-      ACCESS_SECRET as string,
-      { expiresIn: "1m" },
-      (err, token) => {
-        if (err) {
-          throw new Error("Invalid");
-        }
-        res.json({
-          accesToken: token,
-        });
+  if (refreshToken) {
+    jwt.verify(
+      refreshToken as string,
+      REFRESH_SECRET as string,
+      (err, decoded) => {
+        const payload = decoded as JwtPayload;
+        jwt.sign(
+          payload,
+          ACCESS_SECRET as string,
+          { expiresIn: "1m" },
+          (err, token) => {
+            if (err) {
+              throw new Error("Invalid");
+            }
+            res.json({
+              accesToken: token,
+            });
+          }
+        );
       }
     );
   } else {
