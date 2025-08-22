@@ -14,14 +14,6 @@ export interface UserLoginData {
   password: string;
 }
 
-interface MyJwtPayload {
-  username: string;
-  email: string;
-  name: string;
-  iat: number;
-  exp: number;
-}
-
 export const register = async (req: Request, res: Response) => {
   try {
     const body: UserData = req.body;
@@ -67,30 +59,32 @@ export const refreshAccess = (req: Request, res: Response) => {
   const ACCESS_SECRET = process.env.ACCESS_SECRET;
   const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
-  if (refreshToken) {
-    jwt.verify(
-      refreshToken as string,
-      REFRESH_SECRET as string,
-      (err, decoded) => {
-        const payload = decoded as JwtPayload;
-        jwt.sign(
-          payload,
-          ACCESS_SECRET as string,
-          { expiresIn: "1m" },
-          (err, token) => {
-            if (err) {
-              throw new Error("Invalid");
-            }
-            res.json({
-              accesToken: token,
-            });
-          }
-        );
-      }
-    );
-  } else {
-    return res.status(401).json({
-      message: "Access denied",
-    });
+  if (!refreshToken) {
+    return res.sendStatus(401);
   }
+
+  jwt.verify(
+    refreshToken as string,
+    REFRESH_SECRET as string,
+    (err, decoded) => {
+      if (err || !decoded) {
+        return res.sendStatus(403);
+      }
+
+      const payload = decoded as JwtPayload;
+
+      jwt.sign(
+        payload,
+        ACCESS_SECRET as string,
+        { expiresIn: "1m" },
+        (err, token) => {
+          if (err || !token) {
+            return res.sendStatus(500);
+          }
+
+          res.json({ accessToken: token });
+        }
+      );
+    }
+  );
 };
