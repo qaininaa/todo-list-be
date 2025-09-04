@@ -40,7 +40,7 @@ export const login = async (req: Request, res: Response) => {
       maxAge: 5 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       secure: false,
-      sameSite: "none",
+      sameSite: "lax",
     });
 
     res.json({
@@ -59,8 +59,15 @@ export const refreshAccess = (req: Request, res: Response) => {
   const ACCESS_SECRET = process.env.ACCESS_SECRET;
   const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
+  console.info("ini cookies", req.cookies);
+  console.log("ini log cookies", req.cookies);
+
   if (!refreshToken) {
-    return res.sendStatus(401);
+    console.log(refreshToken);
+    return res.status(401).json({
+      message: "No token provided",
+      data: req.cookies,
+    });
   }
 
   jwt.verify(
