@@ -29,7 +29,7 @@ export const authMiddleware = (
 
   jwt.verify(token as string, ACCESS_SECRET as string, (err, decoded) => {
     if (err) {
-      return res.status(401).json({
+      return res.status(403).json({
         message: "Token expired",
       });
     }

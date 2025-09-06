@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as authService from "../services/auth.service";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { UserType } from "../types/auth.type";
 
 export interface UserData {
   username: string;
@@ -59,39 +60,47 @@ export const refreshAccess = (req: Request, res: Response) => {
   const ACCESS_SECRET = process.env.ACCESS_SECRET;
   const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
-  console.info("ini cookies", req.cookies);
-  console.log("ini log cookies", req.cookies);
-
   if (!refreshToken) {
-    console.log(refreshToken);
     return res.status(401).json({
       message: "No token provided",
-      data: req.cookies,
     });
   }
 
-  jwt.verify(
+  const decoded = jwt.verify(
     refreshToken as string,
-    REFRESH_SECRET as string,
-    (err, decoded) => {
-      if (err || !decoded) {
-        return res.sendStatus(403);
+    REFRESH_SECRET as string
+  ) as UserType;
+
+  if (!decoded) return res.sendStatus(403);
+
+  const payload = {
+    name: decoded.name,
+    username: decoded.username,
+    email: decoded.email,
+  };
+
+  jwt.sign(
+    payload,
+    ACCESS_SECRET as string,
+    { expiresIn: "1m" },
+    (err, token) => {
+      if (err || !token) {
+        console.log(err);
       }
 
-      const payload = decoded as JwtPayload;
-
-      jwt.sign(
-        payload,
-        ACCESS_SECRET as string,
-        { expiresIn: "1m" },
-        (err, token) => {
-          if (err || !token) {
-            return res.sendStatus(500);
-          }
-
-          res.json({ accessToken: token });
-        }
-      );
+      res.json({ accessToken: token });
     }
   );
+};
+
+export const clearRefresh = (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      message: "No token provided",
+    });
+  }
+  res.clearCookie("refreshToken");
+  res.end();
 };
