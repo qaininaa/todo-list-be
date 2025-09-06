@@ -1,8 +1,10 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import authRouters from "./routes/auth.routes";
+import authRouter from "./routes/auth.routes";
+import profileRouter from "./routes/profile.routes";
+import { authMiddleware } from "./middlewares/auth.middleware";
 
 dotenv.config();
 
@@ -17,13 +19,8 @@ app.use(
     credentials: true,
   })
 );
-app.use("/api/auth", authRouters);
-
-app.get("/", (req: Request, res: Response) => {
-  res.json({
-    message: "hello",
-  });
-});
+app.use("/api/auth", authRouter);
+app.use("/api/profile", authMiddleware, profileRouter);
 
 app.listen(PORT, () => {
   console.log(`you are listening on port ${PORT}`);

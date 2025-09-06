@@ -39,7 +39,6 @@ export const loginUser = async (data: UserLoginData) => {
       throw new Error("Enter data user");
     }
     const user = await authRepository.findByUsername(data.username);
-    console.log(user);
 
     if (!user || user === null) {
       throw new Error("User is not found");

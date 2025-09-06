@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import * as authService from "../services/auth.service";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { UserType } from "../types/auth.type";
 
 export interface UserData {
   username: string;
@@ -39,7 +41,7 @@ export const login = async (req: Request, res: Response) => {
       maxAge: 5 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       secure: false,
-      sameSite: "none",
+      sameSite: "lax",
     });
 
     res.json({
@@ -51,4 +53,54 @@ export const login = async (req: Request, res: Response) => {
       errorMessage: error instanceof Error ? error.message : String(error),
     });
   }
+};
+
+export const refreshAccess = (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+  const ACCESS_SECRET = process.env.ACCESS_SECRET;
+  const REFRESH_SECRET = process.env.REFRESH_SECRET;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      message: "No token provided",
+    });
+  }
+
+  const decoded = jwt.verify(
+    refreshToken as string,
+    REFRESH_SECRET as string
+  ) as UserType;
+
+  if (!decoded) return res.sendStatus(403);
+
+  const payload = {
+    name: decoded.name,
+    username: decoded.username,
+    email: decoded.email,
+  };
+
+  jwt.sign(
+    payload,
+    ACCESS_SECRET as string,
+    { expiresIn: "1m" },
+    (err, token) => {
+      if (err || !token) {
+        console.log(err);
+      }
+
+      res.json({ accessToken: token });
+    }
+  );
+};
+
+export const clearRefresh = (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      message: "No token provided",
+    });
+  }
+  res.clearCookie("refreshToken");
+  res.end();
 };
