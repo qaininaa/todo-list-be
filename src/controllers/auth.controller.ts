@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as authService from "../services/auth.service";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { UserType } from "../types/auth.type";
 
 export interface UserData {
