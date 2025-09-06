@@ -3,6 +3,9 @@ import * as authService from "../services/auth.service";
 import jwt from "jsonwebtoken";
 import { UserType } from "../types/auth.type";
 
+/**
+ * Interface for user registration data.
+ */
 export interface UserData {
   username: string;
   password: string;
@@ -10,11 +13,20 @@ export interface UserData {
   name: string;
 }
 
+/**
+ * Interface for user login data.
+ */
 export interface UserLoginData {
   username: string;
   password: string;
 }
 
+/**
+ * Registers a new user.
+ * @param req - The request object containing user data in the body.
+ * @param res - The response object.
+ * @returns A JSON response with success message and user data, or an error message.
+ */
 export const register = async (req: Request, res: Response) => {
   try {
     const body: UserData = req.body;
@@ -32,13 +44,19 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Logs in a user and sets a refresh token cookie.
+ * @param req - The request object containing login data in the body.
+ * @param res - The response object.
+ * @returns A JSON response with access token, or an error message.
+ */
 export const login = async (req: Request, res: Response) => {
   try {
     const { body } = req as { body: UserLoginData };
     const { accessToken, refreshToken } = await authService.loginUser(body);
 
     res.cookie("refreshToken", refreshToken, {
-      maxAge: 5 * 24 * 60 * 60 * 1000,
+      maxAge: 1 * 60 * 1000,
       httpOnly: true,
       secure: false,
       sameSite: "lax",
@@ -55,6 +73,12 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Refreshes the access token using the refresh token and generates a new refresh token.
+ * @param req - The request object, expecting a refresh token in cookies.
+ * @param res - The response object.
+ * @returns A JSON response with new access token, or an error status.
+ */
 export const refreshAccess = (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
   const ACCESS_SECRET = process.env.ACCESS_SECRET;
@@ -79,6 +103,10 @@ export const refreshAccess = (req: Request, res: Response) => {
     email: decoded.email,
   };
 
+  const newRefreshToken = jwt.sign(payload, REFRESH_SECRET as string, {
+    expiresIn: "5d",
+  });
+
   jwt.sign(
     payload,
     ACCESS_SECRET as string,
@@ -88,11 +116,24 @@ export const refreshAccess = (req: Request, res: Response) => {
         console.log(err);
       }
 
+      res.cookie("refreshToken", newRefreshToken, {
+        maxAge: 5 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+      });
+
       res.json({ accessToken: token });
     }
   );
 };
 
+/**
+ * Clears the refresh token cookie.
+ * @param req - The request object, expecting a refresh token in cookies.
+ * @param res - The response object.
+ * @returns Ends the response after clearing the cookie, or an error status.
+ */
 export const clearRefresh = (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
 
