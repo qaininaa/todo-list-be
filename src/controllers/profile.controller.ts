@@ -1,26 +1,7 @@
-import { Request, Response } from "express";
-
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    username: string;
-    email: string;
-    name: string;
-    iat: number;
-    exp: number;
-  };
-}
+import { Response } from "express";
+import { AuthenticatedRequest } from "../types/auth.type";
 
 export const profileUser = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (req.user) {
-      res.json({
-        message: "Success",
-        data: req.user,
-      });
-    }
-  } catch (error) {
-    return res.status(401).json({
-      message: error instanceof Error ? error.message : String(error),
-    });
-  }
+  if (!req.user) return res.sendStatus(401);
+  return res.json({ user: req.user });
 };
